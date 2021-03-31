@@ -60,14 +60,14 @@ async def cronjob4():
         await client.get_channel(channel_id).send("Zapraszamy na kanał głosowy Relaks na wspólną kawę! ☕")
 
 
-@aiocron.crontab('45 15 * * 3')
+@aiocron.crontab('45 14 * * 3')
 async def cronjob5():
     for channel_id in events_channel_ids:
         await client.get_channel(channel_id).send("Biegiem do kuchni, parzyć herbatę! Za kwadrans słyszymy się na "
                                                   "kanale głosowym Relaks! 🫖")
 
 
-@aiocron.crontab('0 16 * * 3')
+@aiocron.crontab('0 15 * * 3')
 async def cronjob6():
     for channel_id in events_channel_ids:
         await client.get_channel(channel_id).send("Zapraszamy na kanał głosowy Relaks na odpoczynek przy herbacie! 🫖")
