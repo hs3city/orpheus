@@ -71,7 +71,7 @@ async def on_ready():
                     channel_ids.append(channel.id)
                 if 'ciekawostka-dnia' in channel.name:
                     trivia_channel_ids.append(channel.id)
-                if 'wydarzenia' in channel.name:
+                if 'wydarzenia' in channel.name and 'wydarzenia-' not in channel.name:
                     events_channel_ids.append(channel.id)
 
 
