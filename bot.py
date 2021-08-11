@@ -75,10 +75,28 @@ async def cronjob5():
     print("Cronjob5")
     today = datetime.date.today().strftime('%d-%m-%Y')
     today = '16-08-2021'
-    training_link = f"Dzisiejszy trening :mechanical_arm: : {training_links[today]}"
+    training_link = f"Dzisiejszy trening ({today}) :mechanical_arm: : {training_links[today]}"
     for channel_id in sport_ids:
         await client.get_channel(channel_id).send(training_link)
 
+
+def compare_emojis(reaction_emoji):
+    return reaction_emoji.name == "✅"
+
+@client.event
+async def on_raw_reaction_add(reaction):
+    print("tutaj")
+    print(reaction.emoji.name)
+    if compare_emojis(reaction.emoji):
+        # Tutaj trafi sprawdzanie daty
+        user_id = reaction.user_id
+        channel = await client.fetch_channel(reaction.channel_id)
+        msg = await channel.fetch_message(reaction.message_id)
+        if 'sport' in msg.channel.name:
+            print(msg.content)
+            user = await client.fetch_user(user_id)
+            #await channel.send('{0} has reacted with {1.emoji}!'.format(user, reaction))
+            print('{0} has reacted with {1.emoji}!'.format(user, reaction))
 
 @client.event
 async def on_ready():
