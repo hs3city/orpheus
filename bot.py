@@ -3,13 +3,18 @@ import aiocron
 import csv
 import datetime
 import os
+import re
 
 import discord
 from dotenv import load_dotenv
 import sheetake
+import logging
 
 load_dotenv()
 TOKEN = os.getenv('DISCORD_TOKEN')
+
+# Logging configuration
+logging.basicConfig(encoding="utf-8", level=logging.INFO)
 
 client = discord.Client()
 
@@ -20,9 +25,9 @@ training_links = dict()
 creds = sheetake.auth()
 
 values = sheetake.get_sheet_done(creds)
-for row in values[2:]:
-    training_links[row[0]] = row[1]
-print(training_links)
+users = [x.strip() for x in values[1][2:]]
+for i, row in enumerate(values[2:]):
+    training_links[row[0]] = [row[1], i]
 
 with open('themes.csv') as f:
     csv_reader = csv.reader(f)
@@ -45,7 +50,10 @@ events_channel_ids = []
 @aiocron.crontab('15 4 * * *')
 async def cronjob1():
     today = datetime.date.today().strftime('%Y-%m-%d')
-    theme = advent_calendar[today]
+    try:
+        theme = advent_calendar[today]
+    except KeyError:
+        return
     for channel_id in channel_ids:
         await client.get_channel(channel_id).send(f"Dzisiejszy temat to: {theme}")
 
@@ -53,7 +61,10 @@ async def cronjob1():
 @aiocron.crontab('0 6 * * *')
 async def cronjob2():
     today = datetime.date.today().strftime('%Y-%m-%d')
-    trivia_of_the_day = trivia[today]
+    try:
+        trivia_of_the_day = trivia[today]
+    except KeyError:
+        return
     for channel_id in trivia_channel_ids:
         await client.get_channel(channel_id).send(trivia_of_the_day)
 
@@ -70,12 +81,15 @@ async def cronjob4():
         await client.get_channel(channel_id).send("Zapraszamy na kanał głosowy Relaks na wspólną kawę! ☕")
 
 
-@aiocron.crontab('* * * * *')
+@aiocron.crontab('0 5 * * *')
 async def cronjob5():
-    print("Cronjob5")
     today = datetime.date.today().strftime('%d-%m-%Y')
     today = '16-08-2021'
-    training_link = f"Dzisiejszy trening ({today}) :mechanical_arm: : {training_links[today]}"
+    try:
+        today_link = training_links[today][0]
+    except KeyError:
+        return
+    training_link = f"Dzisiejszy trening ({today}) :mechanical_arm: : {today_link}"
     for channel_id in sport_ids:
         await client.get_channel(channel_id).send(training_link)
 
@@ -85,37 +99,50 @@ def compare_emojis(reaction_emoji):
 
 @client.event
 async def on_raw_reaction_add(reaction):
-    print("tutaj")
-    print(reaction.emoji.name)
     if compare_emojis(reaction.emoji):
-        # Tutaj trafi sprawdzanie daty
         user_id = reaction.user_id
         channel = await client.fetch_channel(reaction.channel_id)
         msg = await channel.fetch_message(reaction.message_id)
         if 'sport' in msg.channel.name:
-            print(msg.content)
-            user = await client.fetch_user(user_id)
-            #await channel.send('{0} has reacted with {1.emoji}!'.format(user, reaction))
-            print('{0} has reacted with {1.emoji}!'.format(user, reaction))
+            matcher = re.findall(r'\d{2}-\d{2}-\d{4}', str(msg.content))
+            if matcher:
+                user = await client.fetch_user(user_id)
+                try:
+                    col = users.index(str(user)) + 2
+                except ValueError:
+                    return
+                row = training_links[matcher[0]][1] + 3 # Offsets needed for correct pos
+                sheetake.mark_done(col, row, "done")
+
+@client.event
+async def on_raw_reaction_remove(reaction):
+    if compare_emojis(reaction.emoji):
+        user_id = reaction.user_id
+        channel = await client.fetch_channel(reaction.channel_id)
+        msg = await channel.fetch_message(reaction.message_id)
+        if 'sport' in msg.channel.name:
+            matcher = re.findall(r'\d{2}-\d{2}-\d{4}', str(msg.content))
+            if matcher:
+                user = await client.fetch_user(user_id)
+                col = users.index(str(user)) + 2
+                row = training_links[matcher[0]][1] + 3 # Offsets needed for correct pos
+                sheetake.mark_done(col, row, "")
 
 @client.event
 async def on_ready():
     global channel_ids
     for guild in client.guilds:
-        print(f'{client.user} has connected to Discord server {guild}!')
-        if "DoomHammer's server chapter 2" in str(guild):
-            print(f"Diving into {guild}")
-            for channel in guild.channels:
-                if isinstance(channel, discord.TextChannel):
-                    if 'music' in channel.name:
-                        channel_ids.append(channel.id)
-                    if 'sport' in channel.name:
-                        sport_ids.append(channel.id)
-                        print(f"Adding {channel.id} ({channel.name})")
-                    if 'ciekawostka-dnia' in channel.name:
-                        trivia_channel_ids.append(channel.id)
-                    if 'wydarzenia' in channel.name and 'wydarzenia-' not in channel.name:
-                        events_channel_ids.append(channel.id)
+        logging.info(f'{client.user} has connected to Discord server {guild}!')
+        for channel in guild.channels:
+            if isinstance(channel, discord.TextChannel):
+                if 'music' in channel.name:
+                    channel_ids.append(channel.id)
+                if 'sport' in channel.name:
+                    sport_ids.append(channel.id)
+                if 'ciekawostka-dnia' in channel.name:
+                    trivia_channel_ids.append(channel.id)
+                if 'wydarzenia' in channel.name and 'wydarzenia-' not in channel.name:
+                    events_channel_ids.append(channel.id)
 
 
 client.run(TOKEN)

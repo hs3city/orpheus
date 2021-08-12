@@ -43,6 +43,22 @@ def get_sheet_done(creds):
 
     return values
 
+def mark_done(x, y, payload, creds=auth()):
+    service = build('sheets', 'v4', credentials=creds)
+
+    # Call the Sheets API
+    body = {
+            "values": [[payload],]
+            }
+    sheet = service.spreadsheets()
+    result = sheet.values().update(spreadsheetId=SAMPLE_SPREADSHEET_ID,
+            range=f"{parse_col(x)}{y}:{parse_col(x)}{y}", valueInputOption='RAW', body=body).execute()
+
+def parse_col(x):
+    asc_ord = ord('A')
+    return chr(asc_ord+x)
+
+
 def main():
     """Shows basic usage of the Sheets API.
     Prints values from a sample spreadsheet.
