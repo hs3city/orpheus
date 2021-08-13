@@ -2,7 +2,7 @@
 name = "orpheus"
 version = "0.1.0"
 description = "The best discord bot ever made."
-authors = ["Your Name <you@example.com>"]
+authors = ["Jedrzej Szadejko <jedrzej@szadejko.pl>"]
 license = "MIT"
 
 [tool.poetry.dependencies]
