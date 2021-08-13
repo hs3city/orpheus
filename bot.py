@@ -48,7 +48,7 @@ events_channel_ids = []
 
 
 @aiocron.crontab('15 4 * * *')
-async def cronjob1():
+async def advent_event():
     today = datetime.date.today().strftime('%Y-%m-%d')
     try:
         theme = advent_calendar[today]
@@ -59,7 +59,7 @@ async def cronjob1():
 
 
 @aiocron.crontab('0 6 * * *')
-async def cronjob2():
+async def trivia_event():
     today = datetime.date.today().strftime('%Y-%m-%d')
     try:
         trivia_of_the_day = trivia[today]
@@ -70,21 +70,20 @@ async def cronjob2():
 
 
 @aiocron.crontab('45 9 * * 2,4')
-async def cronjob3():
+async def coffee_reminder():
     for channel_id in events_channel_ids:
         await client.get_channel(channel_id).send("Za kwadrans kawka na kanale głosowym Relaks! ☕")
 
 
 @aiocron.crontab('0 10 * * 2,4')
-async def cronjob4():
+async def coffee_invite():
     for channel_id in events_channel_ids:
         await client.get_channel(channel_id).send("Zapraszamy na kanał głosowy Relaks na wspólną kawę! ☕")
 
 
 @aiocron.crontab('0 5 * * *')
-async def cronjob5():
+async def fitness_event():
     today = datetime.date.today().strftime('%d-%m-%Y')
-    today = '16-08-2021'
     try:
         today_link = training_links[today][0]
     except KeyError:
