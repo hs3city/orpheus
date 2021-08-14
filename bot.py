@@ -14,7 +14,7 @@ load_dotenv()
 TOKEN = os.getenv('DISCORD_TOKEN')
 
 # Logging configuration
-logging.basicConfig(encoding="utf-8", level=logging.INFO)
+logging.basicConfig(level=logging.INFO)
 
 client = discord.Client()
 
