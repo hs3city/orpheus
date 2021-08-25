@@ -98,9 +98,12 @@ def compare_emojis(reaction_emoji):
     return reaction_emoji.name == "✅"
 
 def read_roles(reaction):
+    try:
+        config = open('role_config.json',)
+    except FileNotFoundError:
+        return None
     message_id = reaction.message_id
     emoji_name = reaction.emoji.name
-    config = open('role_config.json',)
     roles = json.load(config)
     role_info_message = int(roles['role_info_message_id'])
     roles_kv = roles['roles']

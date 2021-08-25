@@ -1,0 +1,6 @@
+{
+    "role_info_message_id": "message_id_with_described_roles",
+	"roles": {
+		"role_emoji": "role_id_from_discord"
+	}
+}
