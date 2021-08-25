@@ -4,10 +4,11 @@ import csv
 import datetime
 import os
 import re
+import json
 
 import discord
 from dotenv import load_dotenv
-import sheetake
+#import sheetake
 import logging
 
 load_dotenv()
@@ -22,12 +23,12 @@ advent_calendar = dict()
 trivia = dict()
 training_links = dict()
 
-creds = sheetake.auth()
+#creds = sheetake.auth()
 
-values = sheetake.get_sheet_done(creds)
-users = [x.strip() for x in values[1][2:]]
-for i, row in enumerate(values[2:]):
-    training_links[row[0]] = [row[1], i]
+#values = sheetake.get_sheet_done(creds)
+#users = [x.strip() for x in values[1][2:]]
+#for i, row in enumerate(values[2:]):
+#    training_links[row[0]] = [row[1], i]
 
 with open('themes.csv') as f:
     csv_reader = csv.reader(f)
@@ -96,8 +97,32 @@ async def fitness_event():
 def compare_emojis(reaction_emoji):
     return reaction_emoji.name == "✅"
 
+def read_roles(reaction):
+    message_id = reaction.message_id
+    emoji_name = reaction.emoji.name
+    config = open('role_config.json',)
+    roles = json.load(config)
+    role_info_message = int(roles['role_info_message_id'])
+    roles_kv = roles['roles']
+    if message_id == role_info_message and emoji_name in roles_kv:
+        return int(roles_kv[emoji_name])
+    return None
+
+async def add_role(member, role_id):
+    role_to_add = discord.utils.get(member.guild.roles, id=role_id)
+    await member.add_roles(role_to_add)
+
+async def remove_role(reaction, role_id):
+    guild = client.get_guild(reaction.guild_id)
+    member = await guild.fetch_member(reaction.user_id)
+    role_to_remove = discord.utils.get(guild.roles, id=role_id)
+    await member.remove_roles(role_to_remove)
+
 @client.event
 async def on_raw_reaction_add(reaction):
+    role_id = read_roles(reaction)
+    if role_id:
+        await add_role(reaction.member, role_id)
     if compare_emojis(reaction.emoji):
         user_id = reaction.user_id
         channel = await client.fetch_channel(reaction.channel_id)
@@ -115,6 +140,9 @@ async def on_raw_reaction_add(reaction):
 
 @client.event
 async def on_raw_reaction_remove(reaction):
+    role_id = read_roles(reaction)
+    if role_id:
+        await remove_role(reaction, role_id)
     if compare_emojis(reaction.emoji):
         user_id = reaction.user_id
         channel = await client.fetch_channel(reaction.channel_id)
