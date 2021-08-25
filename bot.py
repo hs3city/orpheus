@@ -115,6 +115,7 @@ async def add_role(member, role_id):
     role_to_add = discord.utils.get(member.guild.roles, id=role_id)
     await member.add_roles(role_to_add)
 
+# We need to have a workaround for getting reaction user, as when reaction is removed, member is None
 async def remove_role(reaction, role_id):
     guild = client.get_guild(reaction.guild_id)
     member = await guild.fetch_member(reaction.user_id)
