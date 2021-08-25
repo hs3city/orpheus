@@ -8,7 +8,7 @@ import json
 
 import discord
 from dotenv import load_dotenv
-#import sheetake
+import sheetake
 import logging
 
 load_dotenv()
@@ -23,12 +23,12 @@ advent_calendar = dict()
 trivia = dict()
 training_links = dict()
 
-#creds = sheetake.auth()
+creds = sheetake.auth()
 
-#values = sheetake.get_sheet_done(creds)
-#users = [x.strip() for x in values[1][2:]]
-#for i, row in enumerate(values[2:]):
-#    training_links[row[0]] = [row[1], i]
+values = sheetake.get_sheet_done(creds)
+users = [x.strip() for x in values[1][2:]]
+for i, row in enumerate(values[2:]):
+    training_links[row[0]] = [row[1], i]
 
 with open('themes.csv') as f:
     csv_reader = csv.reader(f)
