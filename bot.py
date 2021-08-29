@@ -7,11 +7,22 @@ import re
 
 import discord
 from dotenv import load_dotenv
-import sheetake
 import logging
 
 load_dotenv()
 TOKEN = os.getenv('DISCORD_TOKEN')
+USING_GOOGLE = os.getenv('USING_GOOGLE', "True")
+
+# I know this is bad, but i can't properly cast env var to bool
+if USING_GOOGLE == "True":
+    import sheetake
+    creds = sheetake.auth()
+
+    values = sheetake.get_sheet_done(creds)
+    users = [x.strip() for x in values[1][2:]]
+    for i, row in enumerate(values[2:]):
+        training_links[row[0]] = [row[1], i]
+
 
 # Logging configuration
 logging.basicConfig(level=logging.INFO)
@@ -22,12 +33,6 @@ advent_calendar = dict()
 trivia = dict()
 training_links = dict()
 
-creds = sheetake.auth()
-
-values = sheetake.get_sheet_done(creds)
-users = [x.strip() for x in values[1][2:]]
-for i, row in enumerate(values[2:]):
-    training_links[row[0]] = [row[1], i]
 
 with open('themes.csv') as f:
     csv_reader = csv.reader(f)
