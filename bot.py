@@ -5,6 +5,7 @@ import datetime
 import os
 import re
 import json
+import yaml
 
 import discord
 from dotenv import load_dotenv
@@ -99,12 +100,12 @@ def compare_emojis(reaction_emoji):
 
 def read_roles(reaction):
     try:
-        config = open('role_config.json',)
+        config = open('role_config.yaml',)
     except FileNotFoundError:
         return None
     message_id = reaction.message_id
     emoji_name = reaction.emoji.name
-    roles = json.load(config)
+    roles = yaml.load(config, Loader=yaml.FullLoader)
     role_info_message = int(roles['role_info_message_id'])
     roles_kv = roles['roles']
     if message_id == role_info_message and emoji_name in roles_kv:
