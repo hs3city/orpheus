@@ -67,10 +67,17 @@ class Calendar:
 
         await self.client.get_channel(806843548225634335).send("\n".join(events))
 
+    async def send_reminder(self):
+        events_in_quarter = ["-"]
+        for event in self.daily_events:
+            if datetime.datetime.now().astimezone() + datetime.timedelta(minutes=15) > event['start_dt'] and datetime.datetime.now().astimezone() < event['start_dt']:
+                events_in_quarter.append(f"{event['title']} zaczyna sie juz za 15 minut")
+        await self.client.get_channel(806843548225634335).send("\n".join(events_in_quarter))
+
 
     @staticmethod
     def update_daily_events(data):
-        todays_events = []
+        todays_events = [{"title": "Test 1", "start_dt": datetime.datetime.now().astimezone() + datetime.timedelta(minutes=15)},{"title": "Test 2", "start_dt": datetime.datetime.now().astimezone() + datetime.timedelta(minutes=15)}]
         weekday = datetime.date.today().isoweekday()
         weekday = 3
         for event in data:

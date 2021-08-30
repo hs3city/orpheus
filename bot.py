@@ -109,7 +109,7 @@ async def calendar_fetcher():
             client=client
         )
     print(calendar.daily_events)
-    await calendar.send_weekly_event_schedule()
+    await calendar.send_reminder()
 
 def compare_emojis(reaction_emoji):
     return reaction_emoji.name == "✅"
