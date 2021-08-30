@@ -102,12 +102,14 @@ async def fitness_event():
 
 # Proper @aiocron.crontab('*/15 * * * *')
 # @aiocron.crontab('* * * * *')
-def calendar_fetcher():
+async def calendar_fetcher():
     calendar = Calendar(
             start=datetime.date.today().strftime('%Y-%m-%d'),
-            end=(datetime.date.today()+datetime.timedelta(days=6)).strftime('%Y-%m-%d')
+            end=(datetime.date.today()+datetime.timedelta(days=6)).strftime('%Y-%m-%d'),
+            client=client
         )
     print(calendar.daily_events)
+    await calendar.send_weekly_event_schedule()
 
 def compare_emojis(reaction_emoji):
     return reaction_emoji.name == "✅"
@@ -145,7 +147,7 @@ async def on_raw_reaction_remove(reaction):
 
 @client.event
 async def on_ready():
-    calendar_fetcher()
+    await calendar_fetcher()
     global channel_ids
     for guild in client.guilds:
         logging.info(f'{client.user} has connected to Discord server {guild}!')

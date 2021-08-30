@@ -5,12 +5,14 @@ import datetime
 
 class Calendar:
 
-    def __init__(self, start, end):
+    def __init__(self, start, end, client):
         self.start = start
         self.end = end
+        self.client = client
         self.data = self.get_weekly_events()
         self.parse_data()
         self.daily_events = self.update_daily_events(self.data)
+
 
     def get_weekly_events(self):
         result = requests.get(
@@ -36,17 +38,43 @@ class Calendar:
             parsed_data.append(parsed_event)
         self.data = parsed_data
 
+    # TODO: This has to be formatted properly, some kind of template introduction?
+    async def send_daily_event_schedule(self):
+        events = []
+        for event in self.daily_events:
+            text = f"""
+            Event name: {event['title']}
+            Event description {event['notes']}
+            Event start: {event['start_dt']}"""
+            events.append(text)
+
+        await self.client.get_channel(806843548225634335).send("\n".join(events))
+
+    async def send_weekly_event_schedule(self):
+        weekdays = ['\nPoniedzialek', '\nWtorek', '\nSroda', '\nCzwartek', '\nPiatek', '\nSobota', '\nNiedziela']
+        events = ["-",]
+        event_timeline = sorted(self.data, key=lambda x: x['start_dt'])
+        days = []
+        for event in event_timeline:
+            if event['start_dt'].isoweekday() not in days:
+                days.append(event['start_dt'].isoweekday())
+                events.append(f"{weekdays[event['start_dt'].weekday()]}")
+            text = f"""
+            Event name: {event['title']}
+            Event description {event['notes']}
+            Event start: {event['start_dt']}"""
+            events.append(text)
+
+        await self.client.get_channel(806843548225634335).send("\n".join(events))
+
+
     @staticmethod
     def update_daily_events(data):
         todays_events = []
         weekday = datetime.date.today().isoweekday()
+        weekday = 3
         for event in data:
             if event['start_dt'].isoweekday() == weekday:
                 todays_events.append(event)
         return todays_events
-
-
-
-
-
 
