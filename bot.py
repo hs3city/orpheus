@@ -4,10 +4,13 @@ import csv
 import datetime
 import os
 import re
+import requests
+import json
 
 import discord
 from dotenv import load_dotenv
 import logging
+from calendar_parser import Calendar
 
 load_dotenv()
 TOKEN = os.getenv('DISCORD_TOKEN')
@@ -97,6 +100,14 @@ async def fitness_event():
     for channel_id in sport_ids:
         await client.get_channel(channel_id).send(training_link)
 
+# Proper @aiocron.crontab('*/15 * * * *')
+# @aiocron.crontab('* * * * *')
+def calendar_fetcher():
+    calendar = Calendar(
+            start=datetime.date.today().strftime('%Y-%m-%d'),
+            end=(datetime.date.today()+datetime.timedelta(days=6)).strftime('%Y-%m-%d')
+        )
+    print(calendar.daily_events)
 
 def compare_emojis(reaction_emoji):
     return reaction_emoji.name == "✅"
@@ -134,6 +145,7 @@ async def on_raw_reaction_remove(reaction):
 
 @client.event
 async def on_ready():
+    calendar_fetcher()
     global channel_ids
     for guild in client.guilds:
         logging.info(f'{client.user} has connected to Discord server {guild}!')
