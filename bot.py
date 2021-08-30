@@ -4,6 +4,8 @@ import csv
 import datetime
 import os
 import re
+import json
+import yaml
 
 import discord
 from dotenv import load_dotenv
@@ -96,8 +98,36 @@ async def fitness_event():
 def compare_emojis(reaction_emoji):
     return reaction_emoji.name == "✅"
 
+def read_roles(reaction):
+    try:
+        config = open('role_config.yaml',)
+    except FileNotFoundError:
+        return None
+    message_id = reaction.message_id
+    emoji_name = reaction.emoji.name
+    roles = yaml.load(config, Loader=yaml.FullLoader)
+    role_info_message = int(roles['role_info_message_id'])
+    roles_kv = roles['roles']
+    if message_id == role_info_message and emoji_name in roles_kv:
+        return int(roles_kv[emoji_name])
+    return None
+
+async def add_role(member, role_id):
+    role_to_add = discord.utils.get(member.guild.roles, id=role_id)
+    await member.add_roles(role_to_add)
+
+# We need to have a workaround for getting reaction user, as when reaction is removed, member is None
+async def remove_role(reaction, role_id):
+    guild = client.get_guild(reaction.guild_id)
+    member = await guild.fetch_member(reaction.user_id)
+    role_to_remove = discord.utils.get(guild.roles, id=role_id)
+    await member.remove_roles(role_to_remove)
+
 @client.event
 async def on_raw_reaction_add(reaction):
+    role_id = read_roles(reaction)
+    if role_id:
+        await add_role(reaction.member, role_id)
     if compare_emojis(reaction.emoji):
         user_id = reaction.user_id
         channel = await client.fetch_channel(reaction.channel_id)
@@ -115,6 +145,9 @@ async def on_raw_reaction_add(reaction):
 
 @client.event
 async def on_raw_reaction_remove(reaction):
+    role_id = read_roles(reaction)
+    if role_id:
+        await remove_role(reaction, role_id)
     if compare_emojis(reaction.emoji):
         user_id = reaction.user_id
         channel = await client.fetch_channel(reaction.channel_id)
