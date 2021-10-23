@@ -1,0 +1,10 @@
+.env
+.env.example
+.gitignore
+.dockerignore
+.DS_Store
+.git
+*.example*
+Dockerfile
+LICENSE
+README.md
