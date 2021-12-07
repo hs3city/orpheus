@@ -7,10 +7,6 @@ from google.oauth2.credentials import Credentials
 # If modifying these scopes, delete the file token.json.
 SCOPES = ['https://www.googleapis.com/auth/spreadsheets']
 
-# The ID and range of a sample spreadsheet.
-SAMPLE_SPREADSHEET_ID = '1HZh6kkX4YWx_S4KwmgLosf4vhfhbuIi0jZpzEhZwXr0'
-SAMPLE_RANGE_NAME = 'Arkusz1'
-
 def auth():
     creds = None
     # The file token.json stores the user's access and refresh tokens, and is
@@ -32,27 +28,48 @@ def auth():
 
     return creds
 
-def get_sheet_done(creds):
-    service = build('sheets', 'v4', credentials=creds)
+class Worksheet:
+    def __init__(self, creds, spreadsheet_id, sheet_name):
+        self.creds = creds
+        self.spreadsheet_id = spreadsheet_id
+        self.sheet_name = sheet_name
+        self.service = build('sheets', 'v4', credentials=self.creds)
 
-    # Call the Sheets API
-    sheet = service.spreadsheets()
-    result = sheet.values().get(spreadsheetId=SAMPLE_SPREADSHEET_ID,
-                                range=SAMPLE_RANGE_NAME).execute()
-    values = result.get('values', [])
+    def update_values(self):
+        # Call the Sheets API
+        sheet = self.service.spreadsheets()
+        result = sheet.values().get(spreadsheetId=self.spreadsheet_id,
+                                    range=self.sheet_name).execute()
+        self.values = result.get('values', [])
 
-    return values
+    def get_users(self):
+        """
+        Remember to call `update_values()` before calling this one!
+        """
+        users = [x.strip() for x in self.values[1][2:]]
 
-def mark_done(x, y, payload, creds=auth()):
-    service = build('sheets', 'v4', credentials=creds)
+        return users
 
-    # Call the Sheets API
-    body = {
-            "values": [[payload],]
-            }
-    sheet = service.spreadsheets()
-    result = sheet.values().update(spreadsheetId=SAMPLE_SPREADSHEET_ID,
-            range=f"{parse_col(x)}{y}:{parse_col(x)}{y}", valueInputOption='RAW', body=body).execute()
+    def get_training_links(self):
+        """
+        Remember to call `update_values()` before calling this one!
+        """
+        training_links = dict()
+        for i, row in enumerate(self.values[2:]):
+            training_links[row[0]] = [row[1], i]
+
+        return training_links
+
+    def mark_done(self, x, y, payload):
+        service = build('sheets', 'v4', credentials=self.creds)
+
+        # Call the Sheets API
+        body = {
+                "values": [[payload],]
+                }
+        sheet = service.spreadsheets()
+        result = sheet.values().update(spreadsheetId=self.spreadsheet_id,
+                range=f"{parse_col(x)}{y}:{parse_col(x)}{y}", valueInputOption='RAW', body=body).execute()
 
 def parse_col(x):
     asc_ord = ord('A')
