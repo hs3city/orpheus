@@ -26,10 +26,9 @@ training_links = dict()
 
 creds = sheetake.auth()
 
-values = sheetake.get_sheet_done(creds)
-users = [x.strip() for x in values[1][2:]]
-for i, row in enumerate(values[2:]):
-    training_links[row[0]] = [row[1], i]
+sport_sheets = [sheetake.Worksheet(creds, '1HZh6kkX4YWx_S4KwmgLosf4vhfhbuIi0jZpzEhZwXr0', 'Arkusz1'), sheetake.Worksheet(creds, '1QsJjcYdibVYhk7OJB2nBNRYat6U5TaTB_TQ_xaClSuM', 'Sheet1')]
+for sport_sheet in sport_sheets:
+    sport_sheet.update_values()
 
 with open('themes.csv') as f:
     csv_reader = csv.reader(f)
@@ -86,13 +85,15 @@ async def coffee_invite():
 @aiocron.crontab('0 5 * * *')
 async def fitness_event():
     today = datetime.date.today().strftime('%d-%m-%Y')
-    try:
-        today_link = training_links[today][0]
-    except KeyError:
-        return
-    training_link = f"Dzisiejszy trening ({today}) :mechanical_arm: : {today_link}"
-    for channel_id in sport_ids:
-        await client.get_channel(channel_id).send(training_link)
+    for sport_sheet in sport_sheets:
+        try:
+            today_link = sport_sheet.get_training_links()[today][0]
+            training_link = f"Dzisiejszy trening ({today}) :mechanical_arm: : {today_link}"
+            for channel_id in sport_ids:
+                await client.get_channel(channel_id).send(training_link)
+        except KeyError:
+            pass
+
 
 
 def compare_emojis(reaction_emoji):
@@ -136,12 +137,14 @@ async def on_raw_reaction_add(reaction):
             matcher = re.findall(r'\d{2}-\d{2}-\d{4}', str(msg.content))
             if matcher:
                 user = await client.fetch_user(user_id)
-                try:
-                    col = users.index(str(user)) + 2
-                except ValueError:
-                    return
-                row = training_links[matcher[0]][1] + 3 # Offsets needed for correct pos
-                sheetake.mark_done(col, row, "done")
+                for sport_sheet in sport_sheets:
+                    sport_sheet.update_values()
+                    try:
+                        col = sport_sheet.get_users().index(str(user)) + 2
+                        row = sport_sheet.get_training_links()[matcher[0]][1] + 3 # Offsets needed for correct pos
+                        sport_sheet.mark_done(col, row, "done")
+                    except:
+                        pass
 
 @client.event
 async def on_raw_reaction_remove(reaction):
@@ -156,9 +159,14 @@ async def on_raw_reaction_remove(reaction):
             matcher = re.findall(r'\d{2}-\d{2}-\d{4}', str(msg.content))
             if matcher:
                 user = await client.fetch_user(user_id)
-                col = users.index(str(user)) + 2
-                row = training_links[matcher[0]][1] + 3 # Offsets needed for correct pos
-                sheetake.mark_done(col, row, "")
+                for sport_sheet in sport_sheets:
+                    sport_sheet.update_values()
+                    try:
+                        col = sport_sheet.get_users().index(str(user)) + 2
+                        row = sport_sheet.get_training_links()[matcher[0]][1] + 3 # Offsets needed for correct pos
+                        sport_sheet.mark_done(col, row, "")
+                    except:
+                        pass
 
 @client.event
 async def on_ready():
