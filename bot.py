@@ -46,7 +46,8 @@ channel_ids = []
 sport_ids = []
 trivia_channel_ids = []
 events_channel_ids = []
-
+verification_channel_ids = []
+verification_role_id = {}
 
 @aiocron.crontab('15 4 * * *')
 async def advent_event():
@@ -88,9 +89,10 @@ async def fitness_event():
     for sport_sheet in sport_sheets:
         try:
             today_link = sport_sheet.get_training_links()[today][0]
-            training_link = f"Dzisiejszy trening ({today}) :mechanical_arm: : {today_link}"
-            for channel_id in sport_ids:
-                await client.get_channel(channel_id).send(training_link)
+            if (len(today_link.strip()) > 0):
+                training_link = f"Dzisiejszy trening ({today}) :mechanical_arm: : {today_link}"
+                for channel_id in sport_ids:
+                    await client.get_channel(channel_id).send(training_link)
         except KeyError:
             pass
 
@@ -124,8 +126,13 @@ async def remove_role(reaction, role_id):
     role_to_remove = discord.utils.get(guild.roles, id=role_id)
     await member.remove_roles(role_to_remove)
 
-@client.event
-async def on_raw_reaction_add(reaction):
+def ensure_user_exists(sheet, user):
+    if not user in sheet.get_users():
+        print(f"{user} is not not on the list (length: {len(sheet.get_users())}, contents: {sheet.get_users()}")
+        sheet.write_cell(len(sheet.get_users())+2, 2, user)
+        sheet.update_values()
+
+async def handle_reaction(reaction, state):
     role_id = read_roles(reaction)
     if role_id:
         await add_role(reaction.member, role_id)
@@ -140,33 +147,26 @@ async def on_raw_reaction_add(reaction):
                 for sport_sheet in sport_sheets:
                     sport_sheet.update_values()
                     try:
+                        ensure_user_exists(sport_sheet, str(user))
                         col = sport_sheet.get_users().index(str(user)) + 2
                         row = sport_sheet.get_training_links()[matcher[0]][1] + 3 # Offsets needed for correct pos
-                        sport_sheet.mark_done(col, row, "done")
+                        sport_sheet.mark_done(col, row, state)
                     except:
                         pass
 
 @client.event
+async def on_raw_reaction_add(reaction):
+    await handle_reaction(reaction, "done")
+
+@client.event
 async def on_raw_reaction_remove(reaction):
-    role_id = read_roles(reaction)
-    if role_id:
-        await remove_role(reaction, role_id)
-    if compare_emojis(reaction.emoji):
-        user_id = reaction.user_id
-        channel = await client.fetch_channel(reaction.channel_id)
-        msg = await channel.fetch_message(reaction.message_id)
-        if 'sport' in msg.channel.name:
-            matcher = re.findall(r'\d{2}-\d{2}-\d{4}', str(msg.content))
-            if matcher:
-                user = await client.fetch_user(user_id)
-                for sport_sheet in sport_sheets:
-                    sport_sheet.update_values()
-                    try:
-                        col = sport_sheet.get_users().index(str(user)) + 2
-                        row = sport_sheet.get_training_links()[matcher[0]][1] + 3 # Offsets needed for correct pos
-                        sport_sheet.mark_done(col, row, "")
-                    except:
-                        pass
+    await handle_reaction(reaction, "")
+
+@client.event
+async def on_message(message):
+    if message.channel.id in verification_channel_ids and message.content.strip().lower() == 't':
+        print(f'{message.author} verified!')
+        await add_role(message.author, verification_role_id[message.guild.id])
 
 @client.event
 async def on_ready():
@@ -183,6 +183,12 @@ async def on_ready():
                     trivia_channel_ids.append(channel.id)
                 if 'wydarzenia' in channel.name and 'wydarzenia-' not in channel.name:
                     events_channel_ids.append(channel.id)
+                if 'weryfikacja' in channel.name:
+                    verification_channel_ids.append(channel.id)
+        for role in guild.roles:
+            if role.name == "weryfikacja":
+                print(f"Verification role for {guild.name} ({guild.id}) is {role.id}")
+                verification_role_id[guild.id] = role.id
 
 
 client.run(TOKEN)

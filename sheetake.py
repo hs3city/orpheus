@@ -60,16 +60,19 @@ class Worksheet:
 
         return training_links
 
-    def mark_done(self, x, y, payload):
+    def write_cell(self, x, y, value):
         service = build('sheets', 'v4', credentials=self.creds)
 
         # Call the Sheets API
         body = {
-                "values": [[payload],]
+                "values": [[value],]
                 }
         sheet = service.spreadsheets()
         result = sheet.values().update(spreadsheetId=self.spreadsheet_id,
                 range=f"{parse_col(x)}{y}:{parse_col(x)}{y}", valueInputOption='RAW', body=body).execute()
+
+    def mark_done(self, x, y, payload):
+        self.write_cell(x, y, payload)
 
 def parse_col(x):
     asc_ord = ord('A')
