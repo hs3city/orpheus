@@ -35,7 +35,7 @@ with open('themes.csv') as f:
     for line in csv_reader:
         advent_calendar[line[0]] = line[1]
 
-files_to_read = ['webaccessibility.csv', 'photography.csv', 'music.csv', 'eme-love.txt', 'tools.csv']
+files_to_read = ['webaccessibility.csv', 'photography.csv', 'music.csv', 'eme-love.txt', 'tools.csv', 'neurodydaktyka.csv']
 for file_to_read in files_to_read:
     with open(file_to_read) as f:
         csv_reader = csv.reader(f)
