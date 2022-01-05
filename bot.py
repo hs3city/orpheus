@@ -132,27 +132,39 @@ def ensure_user_exists(sheet, user):
         sheet.write_cell(len(sheet.get_users())+2, 2, user)
         sheet.update_values()
 
+async def parse_fitness_reaction(message, user_id):
+    matcher = re.findall(r'\d{2}-\d{2}-\d{4}', str(message.content))
+    if matcher:
+        user = await client.fetch_user(user_id)
+        for sport_sheet in sport_sheets:
+            sport_sheet.update_values()
+            try:
+                ensure_user_exists(sport_sheet, str(user))
+                col = sport_sheet.get_users().index(str(user)) + 2
+                row = sport_sheet.get_training_links()[matcher[0]][1] + 3 # Offsets needed for correct pos
+                sport_sheet.mark_done(col, row, state)
+            except:
+                pass
+
 async def handle_reaction(reaction, state):
     role_id = read_roles(reaction)
     if role_id:
         await add_role(reaction.member, role_id)
     if compare_emojis(reaction.emoji):
+        print("Looks like somebody finished something!")
         user_id = reaction.user_id
         channel = await client.fetch_channel(reaction.channel_id)
         msg = await channel.fetch_message(reaction.message_id)
         if 'sport' in msg.channel.name:
-            matcher = re.findall(r'\d{2}-\d{2}-\d{4}', str(msg.content))
-            if matcher:
-                user = await client.fetch_user(user_id)
-                for sport_sheet in sport_sheets:
-                    sport_sheet.update_values()
-                    try:
-                        ensure_user_exists(sport_sheet, str(user))
-                        col = sport_sheet.get_users().index(str(user)) + 2
-                        row = sport_sheet.get_training_links()[matcher[0]][1] + 3 # Offsets needed for correct pos
-                        sport_sheet.mark_done(col, row, state)
-                    except:
-                        pass
+            await parse_fitness_reaction(msg, user_id)
+    if reaction.emoji.name == "🔖" and state == "done":
+        user_id = reaction.user_id
+        channel = await client.fetch_channel(reaction.channel_id)
+        msg = await channel.fetch_message(reaction.message_id)
+        handle_bookmark(msg, user_id)
+
+def handle_bookmark(message, user_id):
+    print(f"This ({message.content}) has been bookmarked by {user_id}!")
 
 @client.event
 async def on_raw_reaction_add(reaction):
@@ -168,10 +180,38 @@ async def on_message(message):
         print(f'{message.author} verified!')
         await add_role(message.author, verification_role_id[message.guild.id])
 
+async def parse_sport_history(channel):
+    async for message in channel.history(limit=200):
+        for reaction in message.reactions:
+            if reaction.emoji == "✅":
+                async for user in reaction.users():
+                    await parse_fitness_reaction(message, user.id, dry_run=True)
+
+async def parse_bookmark_reactions(channel):
+    async for message in channel.history(limit=2000):
+        for reaction in message.reactions:
+            if reaction.emoji == "🔖":
+                async for user in reaction.users():
+                    handle_bookmark(message, user.id)
+
 @client.event
 async def on_ready():
     global channel_ids
     for guild in client.guilds:
+        #try:
+        #    print(await client.http.request(discord.http.Route('GET', '/guilds/{guild_id}/scheduled-events', guild_id=guild.id)))
+        #    event = {
+        #        'name': 'Orpheus presents',
+        #        'description': 'This is a test event created by Orpheus the Bot',
+        #        'scheduled_start_time': '2021-12-23T17:00:00.060000+00:00',
+        #        'scheduled_end_time': '2021-12-23T19:00:00.060000+00:00',
+        #        'privacy_level': 2,
+        #        'entity_metadata': {'location': 'Metaverse'},
+        #        'entity_type': 3,
+        #    }
+        #    print(await client.http.request(discord.http.Route('POST', '/guilds/{guild_id}/scheduled-events', guild_id=guild.id), json=event))
+        #except:
+        #    pass
         logging.info(f'{client.user} has connected to Discord server {guild}!')
         for channel in guild.channels:
             if isinstance(channel, discord.TextChannel):
@@ -179,12 +219,22 @@ async def on_ready():
                     channel_ids.append(channel.id)
                 if 'sport' in channel.name:
                     sport_ids.append(channel.id)
+                    await parse_sport_history(channel)
                 if 'ciekawostka-dnia' in channel.name:
                     trivia_channel_ids.append(channel.id)
                 if 'wydarzenia' in channel.name and 'wydarzenia-' not in channel.name:
                     events_channel_ids.append(channel.id)
                 if 'weryfikacja' in channel.name:
                     verification_channel_ids.append(channel.id)
+                try:
+                    await parse_bookmark_reactions(channel)
+                except discord.errors.Forbidden:
+                    pass
+        for thread in guild.threads:
+            print(f"Found a thread: {thread}")
+            if thread.parent_id in sport_ids:
+                print(f"This thread ({thread}) is part of the sports channel with parent ID {thread.parent_id}, I'm in!")
+                await thread.join()
         for role in guild.roles:
             if role.name == "weryfikacja":
                 print(f"Verification role for {guild.name} ({guild.id}) is {role.id}")
