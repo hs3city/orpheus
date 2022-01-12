@@ -60,6 +60,9 @@ class Worksheet:
 
         return training_links
 
+    def get_thread_name(self):
+        return self.values[0][1]
+
     def write_cell(self, x, y, value):
         service = build('sheets', 'v4', credentials=self.creds)
 

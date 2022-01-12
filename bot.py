@@ -27,8 +27,12 @@ training_links = dict()
 creds = sheetake.auth()
 
 sport_sheets = [sheetake.Worksheet(creds, '1HZh6kkX4YWx_S4KwmgLosf4vhfhbuIi0jZpzEhZwXr0', 'Arkusz1'), sheetake.Worksheet(creds, '1QsJjcYdibVYhk7OJB2nBNRYat6U5TaTB_TQ_xaClSuM', 'Sheet1')]
+sport_threads = []
 for sport_sheet in sport_sheets:
     sport_sheet.update_values()
+    thread_name = sport_sheet.get_thread_name()
+    if len(thread_name) > 0:
+        sport_threads.append(thread_name)
 
 with open('themes.csv') as f:
     csv_reader = csv.reader(f)
@@ -44,6 +48,7 @@ for file_to_read in files_to_read:
 
 channel_ids = []
 sport_ids = []
+sport_thread_ids = []
 trivia_channel_ids = []
 events_channel_ids = []
 verification_channel_ids = []
@@ -83,7 +88,7 @@ async def coffee_invite():
         await client.get_channel(channel_id).send("Zapraszamy na kanał głosowy Relaks na wspólną kawę! ☕")
 
 
-@aiocron.crontab('0 5 * * *')
+@aiocron.crontab('* 18 * * *')
 async def fitness_event():
     today = datetime.date.today().strftime('%d-%m-%Y')
     for sport_sheet in sport_sheets:
@@ -91,6 +96,7 @@ async def fitness_event():
             today_link = sport_sheet.get_training_links()[today][0]
             if (len(today_link.strip()) > 0):
                 training_link = f"Dzisiejszy trening ({today}) :mechanical_arm: : {today_link}"
+                # FIXME: This will fail if we have two challenges with the same date
                 for channel_id in sport_ids:
                     await client.get_channel(channel_id).send(training_link)
         except KeyError:
@@ -128,7 +134,6 @@ async def remove_role(reaction, role_id):
 
 def ensure_user_exists(sheet, user):
     if not user in sheet.get_users():
-        print(f"{user} is not not on the list (length: {len(sheet.get_users())}, contents: {sheet.get_users()}")
         sheet.write_cell(len(sheet.get_users())+2, 2, user)
         sheet.update_values()
 
@@ -151,7 +156,6 @@ async def handle_reaction(reaction, state):
     if role_id:
         await add_role(reaction.member, role_id)
     if compare_emojis(reaction.emoji):
-        print("Looks like somebody finished something!")
         user_id = reaction.user_id
         channel = await client.fetch_channel(reaction.channel_id)
         msg = await channel.fetch_message(reaction.message_id)
@@ -185,7 +189,7 @@ async def parse_sport_history(channel):
         for reaction in message.reactions:
             if reaction.emoji == "✅":
                 async for user in reaction.users():
-                    await parse_fitness_reaction(message, user.id, dry_run=True)
+                    await parse_fitness_reaction(message, user.id)
 
 async def parse_bookmark_reactions(channel):
     async for message in channel.history(limit=2000):
@@ -218,7 +222,6 @@ async def on_ready():
                 if 'music' in channel.name:
                     channel_ids.append(channel.id)
                 if 'sport' in channel.name:
-                    sport_ids.append(channel.id)
                     await parse_sport_history(channel)
                 if 'ciekawostka-dnia' in channel.name:
                     trivia_channel_ids.append(channel.id)
@@ -231,13 +234,12 @@ async def on_ready():
                 except discord.errors.Forbidden:
                     pass
         for thread in guild.threads:
-            print(f"Found a thread: {thread}")
-            if thread.parent_id in sport_ids:
-                print(f"This thread ({thread}) is part of the sports channel with parent ID {thread.parent_id}, I'm in!")
+            if thread.name in sport_threads:
                 await thread.join()
+                sport_ids.append(thread.id)
+            
         for role in guild.roles:
             if role.name == "weryfikacja":
-                print(f"Verification role for {guild.name} ({guild.id}) is {role.id}")
                 verification_role_id[guild.id] = role.id
 
 
