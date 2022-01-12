@@ -88,7 +88,7 @@ async def coffee_invite():
         await client.get_channel(channel_id).send("Zapraszamy na kanał głosowy Relaks na wspólną kawę! ☕")
 
 
-@aiocron.crontab('* 18 * * *')
+@aiocron.crontab('0 5 * * *')
 async def fitness_event():
     today = datetime.date.today().strftime('%d-%m-%Y')
     for sport_sheet in sport_sheets:
@@ -234,6 +234,7 @@ async def on_ready():
                 except discord.errors.Forbidden:
                     pass
         for thread in guild.threads:
+            # TODO: Orpheus should create a thread if it doesn't exist
             if thread.name in sport_threads:
                 await thread.join()
                 sport_ids.append(thread.id)
