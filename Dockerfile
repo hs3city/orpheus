@@ -1,11 +1,11 @@
-FROM python:3.8-slim
+FROM python:3.10-slim
 
-ADD pyproject.toml poetry.lock /src/orpheus/
+COPY pyproject.toml poetry.lock /src/orpheus/
 
 WORKDIR /src/orpheus
 
-RUN pip install poetry && poetry install
+RUN pip install --no-cache-dir poetry==1.4.0 && poetry install
 
-ADD . /src/orpheus/
+COPY . /src/orpheus/
 
-CMD poetry run python bot.py
+CMD ["poetry", "run", "python", "bot.py"]
