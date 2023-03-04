@@ -21,7 +21,7 @@ logging.basicConfig(level=logging.INFO)
 intents = discord.Intents.all()
 client = discord.Client(intents=intents)
 
-advent_calendar = dict()
+advent_calendar = {}
 
 files_to_read = ["themes.csv", "music_advent_2022.csv"]
 for file_to_read in files_to_read:
