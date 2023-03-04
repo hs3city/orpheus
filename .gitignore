@@ -2,8 +2,6 @@
 *.*~
 node_modules
 venv/
-credentials.json
-token.json
 .env
 .vim/
 __pycache__/

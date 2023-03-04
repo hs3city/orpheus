@@ -6,7 +6,7 @@ authors = ["Jedrzej Szadejko <jedrzej@szadejko.pl>"]
 license = "MIT"
 
 [tool.poetry.dependencies]
-python = "^3.8"
+python = "^3.10"
 aiocron = "^1.6"
 discord = "^1.7.3"
 python-dotenv = "^0.19.0"
