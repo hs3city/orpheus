@@ -23,7 +23,7 @@ client = discord.Client(intents=intents)
 
 advent_calendar = {}
 
-files_to_read = ["themes.csv", "music_advent_2022.csv"]
+files_to_read = ["themes.csv", "music_advent_2023.csv"]
 for file_to_read in files_to_read:
     with open(file_to_read) as f:
         csv_reader = csv.reader(f)
