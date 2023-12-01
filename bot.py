@@ -5,9 +5,10 @@ import logging
 import os
 from typing import Dict, List
 
-import aiocron
 import discord
 import yaml
+from apscheduler.schedulers.asyncio import AsyncIOScheduler
+from apscheduler.triggers.cron import CronTrigger
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -36,13 +37,15 @@ verification_channel_ids = []
 verification_role_id: Dict[int, int] = {}
 
 
-@aiocron.crontab("45 4 * * *")
 async def advent_event():
     today = datetime.date.today().strftime("%Y-%m-%d")
+    logging.info(f"Today is {today}, let's check the theme")
     try:
         theme = advent_calendar[today]
     except KeyError:
+        logging.info("No theme for today")
         return
+    logging.info(f"The theme is: {theme}")
     for channel_id in channel_ids:
         await client.get_channel(channel_id).send(f"Dzisiejszy temat to: {theme}")
 
@@ -115,6 +118,14 @@ async def on_ready():
                     f"Verification role for {guild.name} ({guild.id}) is {role.id}"
                 )
                 verification_role_id[guild.id] = role.id
+
+    scheduler = AsyncIOScheduler()
+
+    scheduler.add_job(
+        advent_event, CronTrigger(day_of_week="0-6", hour="4", minute="45", second="0")
+    )
+
+    scheduler.start()
 
 
 client.run(TOKEN)
