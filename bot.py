@@ -122,7 +122,10 @@ async def on_ready():
     scheduler = AsyncIOScheduler()
 
     scheduler.add_job(
-        advent_event, CronTrigger(day_of_week="0-6", hour="4", minute="45", second="0", id="advent_event", replace_existing=True)
+        advent_event,
+        CronTrigger(day_of_week="0-6", hour="4", minute="45", second="0"),
+        id="advent_event",
+        replace_existing=True,
     )
 
     scheduler.start()
